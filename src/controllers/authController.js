@@ -22,6 +22,21 @@ const githubCallback = async (req, res) => {
     try {
         const { code, state } = req.query;
 
+        // Validate required params
+        if (!code) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Missing authorization code'
+            });
+        }
+
+        if (!state) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Missing state parameter'
+            });
+        }
+
         // Parse state to determine redirect type
         let redirect_type = 'web';
         let code_verifier = null;
@@ -31,10 +46,14 @@ const githubCallback = async (req, res) => {
             redirect_type = stateData.redirect_type || 'web';
             code_verifier = stateData.code_verifier;
         } catch (e) {
-            redirect_type = 'web';
+            // Invalid state - reject
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid state parameter'
+            });
         }
 
-        // For web flow, we don't need PKCE
+        // For web flow
         if (redirect_type === 'web') {
             const axios = require('axios');
 
@@ -91,8 +110,24 @@ const githubCallback = async (req, res) => {
             const accessToken = generateAccessToken(user);
             const refreshToken = await generateRefreshToken(user.id);
 
-            // Redirect with tokens in URL hash for cross-domain support
-            const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/#access_token=${accessToken}&refresh_token=${refreshToken}`;
+            const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
+            // Check if request wants JSON (CLI/API/testing) vs browser redirect
+            if (req.headers.accept && req.headers.accept.includes('application/json')) {
+                return res.json({
+                    status: 'success',
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                    user: {
+                        id: user.id,
+                        username: user.username,
+                        role: user.role
+                    }
+                });
+            }
+
+            // Browser redirect with tokens in URL hash
+            const redirectUrl = `${clientUrl}/#access_token=${accessToken}&refresh_token=${refreshToken}`;
             return res.redirect(redirectUrl);
         }
 
@@ -106,9 +141,18 @@ const githubCallback = async (req, res) => {
 
     } catch (error) {
         console.error('GitHub callback error:', error.message);
+
+        // Return proper error for invalid code/state
+        if (error.response && error.response.status === 404) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid authorization code'
+            });
+        }
+
         res.status(500).json({
             status: 'error',
-            message: 'Authentication failed: ' + error.message
+            message: 'Authentication failed'
         });
     }
 };

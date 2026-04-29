@@ -9,7 +9,7 @@ const authLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    validate: false // Suppress IPv6 warning for now
+    validate: false
 });
 
 const apiLimiter = rateLimit({
@@ -18,9 +18,6 @@ const apiLimiter = rateLimit({
     message: {
         status: 'error',
         message: 'Too many requests, please try again later'
-    },
-    keyGenerator: (req) => {
-        return req.user?.user_id || 'anonymous';
     },
     validate: false
 });
