@@ -111,7 +111,7 @@ const githubCallback = async (req, res) => {
             });
 
             // Redirect to web portal dashboard
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/dashboard`);
+            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/`);
         }
 
         const result = await authService.handleGitHubCallback(code, code_verifier);
