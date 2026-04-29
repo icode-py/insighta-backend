@@ -9,9 +9,6 @@ const githubAuth = (req, res) => {
         code_verifier: 'web-flow'
     })).toString('base64');
 
-    // Store state and code_challenge for verification (in production, use a cache)
-    // For now, we'll pass them back via state parameter
-
     const githubAuthUrl = `https://github.com/login/oauth/authorize?` +
         `client_id=${process.env.GITHUB_CLIENT_ID}` +
         `&redirect_uri=${redirect_uri || process.env.GITHUB_REDIRECT_URI}` +
@@ -34,7 +31,6 @@ const githubCallback = async (req, res) => {
             redirect_type = stateData.redirect_type || 'web';
             code_verifier = stateData.code_verifier;
         } catch (e) {
-            // Web flow - no code verifier needed
             redirect_type = 'web';
         }
 
@@ -42,7 +38,7 @@ const githubCallback = async (req, res) => {
         if (redirect_type === 'web') {
             const axios = require('axios');
 
-            // Exchange code for GitHub token (without code_verifier for web)
+            // Exchange code for GitHub token
             const tokenResponse = await axios.post('https://github.com/login/oauth/access_token', {
                 client_id: process.env.GITHUB_CLIENT_ID,
                 client_secret: process.env.GITHUB_CLIENT_SECRET,
@@ -95,25 +91,12 @@ const githubCallback = async (req, res) => {
             const accessToken = generateAccessToken(user);
             const refreshToken = await generateRefreshToken(user.id);
 
-            // Set HTTP-only cookies for web
-            res.cookie('access_token', accessToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                maxAge: 3 * 60 * 1000
-            });
-
-            res.cookie('refresh_token', refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                maxAge: 5 * 60 * 1000
-            });
-
-            // Redirect to web portal dashboard
-            return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:5173'}/`);
+            // Redirect with tokens in URL hash for cross-domain support
+            const redirectUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/#access_token=${accessToken}&refresh_token=${refreshToken}`;
+            return res.redirect(redirectUrl);
         }
 
+        // CLI flow with PKCE
         const result = await authService.handleGitHubCallback(code, code_verifier);
 
         const redirectUrl = `http://localhost:${process.env.CLI_CALLBACK_PORT || 8765}/callback?` +
@@ -161,9 +144,6 @@ const logout = async (req, res) => {
         if (userId) {
             await authService.logout(userId);
         }
-
-        res.clearCookie('access_token');
-        res.clearCookie('refresh_token');
 
         res.json({
             status: 'success',
