@@ -2,9 +2,6 @@ require('dotenv').config();
 
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
-// Debug - remove after confirming it works
-console.log('GITHUB_CLIENT_ID:', process.env.GITHUB_CLIENT_ID ? 'SET' : 'MISSING');
-console.log('GITHUB_REDIRECT_URI:', process.env.GITHUB_REDIRECT_URI);
 
 const express = require('express');
 const cors = require('cors');
@@ -13,6 +10,8 @@ const helmet = require('helmet');
 const connectDB = require('./config/database');
 const { requestLogger } = require('./middleware/logger');
 const { authLimiter, apiLimiter } = require('./middleware/rateLimiter');
+const { authenticate } = require('./middleware/auth');
+const authController = require('./controllers/authController');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -30,14 +29,13 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(requestLogger);
 
-
-// Trust proxy - required for rate limiter behind reverse proxy
+// Trust proxy
 app.set('trust proxy', 1);
+
 // Routes
 app.use('/auth', authLimiter, require('./routes/auth'));
-app.use('/api/users', require('./routes/auth'));
-app.use('/api/profiles', require('./routes/profiles'));
-app.use('/api', apiLimiter, require('./routes/profiles'));
+app.use('/api/profiles', apiLimiter, require('./routes/profiles'));
+app.get('/api/users/me', authenticate, authController.whoami);
 
 // Health check
 app.get('/health', (req, res) => {
