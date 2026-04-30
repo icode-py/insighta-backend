@@ -218,10 +218,14 @@ const whoami = async (req, res) => {
             status: 'success',
             data: {
                 id: user.id,
+                github_id: user.github_id,
                 username: user.username,
+                email: user.email,
                 role: user.role,
                 avatar_url: user.avatar_url,
-                last_login_at: user.last_login_at
+                is_active: user.is_active,
+                last_login_at: user.last_login_at,
+                created_at: user.created_at
             }
         });
     } catch (error) {
