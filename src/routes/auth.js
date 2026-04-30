@@ -3,6 +3,7 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const { authenticate } = require('../middleware/auth');
 
+router.get('/me', authenticate, authController.whoami);
 router.get('/github', authController.githubAuth);
 router.get('/github/callback', authController.githubCallback);
 router.post('/refresh', authController.refreshToken);

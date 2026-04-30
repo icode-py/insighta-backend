@@ -172,7 +172,8 @@ const refreshToken = async (req, res) => {
 
         res.json({
             status: 'success',
-            ...tokens
+            access_token: tokens.accessToken,
+            refresh_token: tokens.refreshToken
         });
     } catch (error) {
         res.status(401).json({

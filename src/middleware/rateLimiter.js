@@ -9,7 +9,8 @@ const authLimiter = rateLimit({
     },
     standardHeaders: true,
     legacyHeaders: false,
-    validate: false
+    validate: false,
+    skip: false // Ensure it's not skipping
 });
 
 const apiLimiter = rateLimit({
@@ -19,7 +20,8 @@ const apiLimiter = rateLimit({
         status: 'error',
         message: 'Too many requests, please try again later'
     },
-    validate: false
+    validate: false,
+    skip: false
 });
 
 module.exports = { authLimiter, apiLimiter };

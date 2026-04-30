@@ -35,6 +35,7 @@ app.use(requestLogger);
 app.set('trust proxy', 1);
 // Routes
 app.use('/auth', authLimiter, require('./routes/auth'));
+app.use('/api/users', require('./routes/auth'));
 app.use('/api/profiles', require('./routes/profiles'));
 app.use('/api', apiLimiter, require('./routes/profiles'));
 
