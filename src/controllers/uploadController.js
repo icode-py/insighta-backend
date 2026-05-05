@@ -2,7 +2,7 @@ const fs = require('fs');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
 const Profile = require('../models/Profile');
-const { getAgeGroup } = require('../utils/ageGroup');
+const { getAgeGroup } = require('../utils/ageGroupHelper');
 const { validateNameParam } = require('../utils/validators');
 const cacheService = require('../services/cacheService');
 
