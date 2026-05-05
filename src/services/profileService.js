@@ -1,9 +1,11 @@
+const cacheService = require('./cacheService');
 const Profile = require('../models/Profile');
 const { getGenderData } = require('./genderizeService');
 const { getAgeData } = require('./agifyService');
 const { getNationalityData } = require('./nationalizeService');
 const { getCountryName } = require('./countryService');
 const { getAgeGroup } = require('../utils/ageGroupHelper');
+
 
 const createProfile = async (name) => {
     const normalizedName = name.trim().toLowerCase();
@@ -16,7 +18,7 @@ const createProfile = async (name) => {
             profile: existingProfile
         };
     }
-
+    cacheService.invalidate();
     try {
         // Call all three APIs in parallel
         const [genderData, ageData, nationalityData] = await Promise.all([
@@ -61,6 +63,14 @@ const getProfileById = async (id) => {
 };
 
 const getAllProfiles = async (filters = {}, options = {}) => {
+    const cacheKey = cacheService.generateCacheKey(filters, options);
+
+    // Check cache
+    const cached = cacheService.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
     const query = {};
 
     // Basic filters
@@ -130,11 +140,17 @@ const getAllProfiles = async (filters = {}, options = {}) => {
         };
     });
 
+    const result = { profiles: transformedProfiles, total, page, limit };
+
+    // Set cache
+    cacheService.set(cacheKey, result);
+
     return {
         profiles: transformedProfiles,
         total,
         page,
-        limit
+        limit,
+        result
     };
 };
 
